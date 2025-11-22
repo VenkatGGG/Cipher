@@ -131,7 +131,7 @@ async def chat_pipeline(query: str, conversation_id: str):
         search_results = await search_parallel(search_query)
         
         # Format search results
-        search_context = "\n".join([f"[{i+1}] {res.get('title', 'Untitled')}: {res.get('body', '')[:300]}..." for i, res in enumerate(search_results)])
+        search_context = "\n".join([f"[{i+1}] {res.get('title', 'Untitled')} ({res.get('url', '#')}): {res.get('body', '')[:300]}..." for i, res in enumerate(search_results)])
         
         # 4. Construct Messages for Final Generation
         system_prompt = """You are Cipher, a real-time AI search engine with a Matrix/Cyberpunk aesthetic. 
@@ -165,7 +165,7 @@ async def chat_pipeline(query: str, conversation_id: str):
         await conversations_collection.insert_one({
             "conversation_id": conversation_id,
             "role": "user",
-            "content": query,
+            "content": user_content, # Store full content with search results for frontend parsing
             "timestamp": timestamp,
             "embedding": query_embedding.tolist()
         })
