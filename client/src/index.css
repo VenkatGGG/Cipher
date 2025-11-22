@@ -1,0 +1,183 @@
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+
+@layer base {
+  body {
+    background-color: #09090b;
+    color: #f4f4f5;
+    font-family: 'Inter', 'Geist Sans', system-ui, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  ::selection {
+    background-color: rgba(16, 185, 129, 0.3);
+    color: rgb(167, 243, 208);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(39, 39, 42, 0.8);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(16, 185, 129, 0.3);
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background-color: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+/* Markdown Styles (Prose Override) */
+.prose-invert {
+  --tw-prose-body: #d4d4d8;
+  /* zinc-300 */
+  --tw-prose-headings: #f4f4f5;
+  /* zinc-100 */
+  --tw-prose-links: #10b981;
+  /* emerald-500 */
+  --tw-prose-code: #10b981;
+  /* emerald-500 */
+  --tw-prose-pre-code: #e4e4e7;
+  /* zinc-200 */
+  --tw-prose-pre-bg: #18181b;
+  /* zinc-900 */
+  --tw-prose-quotes: #a1a1aa;
+  /* zinc-400 */
+  --tw-prose-bold: #f4f4f5;
+  /* zinc-100 */
+  --tw-prose-counters: #71717a;
+  /* zinc-500 */
+  --tw-prose-bullets: #71717a;
+  /* zinc-500 */
+}
+
+.prose-invert h1,
+.prose-invert h2,
+.prose-invert h3 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.prose-invert p {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #d4d4d8;
+}
+
+.prose-invert strong {
+  color: #f4f4f5;
+  font-weight: 600;
+}
+
+.prose-invert ul,
+.prose-invert ol {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.prose-invert li {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slide-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Custom Utilities */
+.input-island {
+  background-color: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s;
+}
+
+.input-island:focus-within {
+  border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3), 0 0 40px rgba(16, 185, 129, 0.08);
+}
+
+.input-island-active {
+  background-color: #18181b;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.1), 0 0 0 1px rgba(16, 185, 129, 0.2);
+  transition: all 0.3s;
+}
+
+/* Hide scrollbar for horizontal source scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
