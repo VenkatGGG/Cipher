@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+motor
+httpx
+python-dotenv
+pydantic
+numpy
+fastembed
