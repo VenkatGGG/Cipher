@@ -14,9 +14,10 @@ from search_client import search_parallel
 from llm_client import stream_chat_response, generate_chat_response
 from fastembed import TextEmbedding
 from prompts import get_system_prompt, get_contextualization_prompt
+from config import EMBEDDING_MODEL, SEARCH_RESULTS_LIMIT, MAX_CONTEXT_MESSAGES, SUMMARIZATION_THRESHOLD
 
 # Initialize embedding model (lightweight)
-embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+embedding_model = TextEmbedding(model_name=EMBEDDING_MODEL)
 
 from summarizer import summarize_conversation
 

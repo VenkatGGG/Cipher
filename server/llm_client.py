@@ -4,6 +4,7 @@ import json
 from dotenv import load_dotenv
 
 from pathlib import Path
+from config import LLM_MODEL, LLM_MAX_TOKENS, LLM_INTERNAL_MAX_TOKENS
 
 # Load .env from parent directory
 env_path = Path(__file__).parent.parent / '.env'
@@ -11,7 +12,6 @@ load_dotenv(dotenv_path=env_path)
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL_NAME = "moonshotai/kimi-k2-thinking"
 
 async def stream_chat_response(messages: list):
     if not OPENROUTER_API_KEY:
@@ -25,15 +25,15 @@ async def stream_chat_response(messages: list):
         "X-Title": "Project Cipher"
     }
     payload = {
-        "model": MODEL_NAME,
+        "model": LLM_MODEL,
         "messages": messages,
         "stream": True,
-        "max_tokens": 2500
+        "max_tokens": LLM_MAX_TOKENS
     }
 
     async with httpx.AsyncClient() as client:
         try:
-            print(f"Sending request to OpenRouter: {MODEL_NAME}")
+            print(f"Sending request to OpenRouter: {LLM_MODEL}")
             async with client.stream("POST", OPENROUTER_API_URL, json=payload, headers=headers, timeout=30.0) as response:
                 print(f"OpenRouter Status: {response.status_code}")
                 if response.status_code != 200:
@@ -73,10 +73,10 @@ async def generate_chat_response(messages: list) -> str:
         "X-Title": "Project Cipher"
     }
     payload = {
-        "model": MODEL_NAME,
+        "model": LLM_MODEL,
         "messages": messages,
         "stream": False,
-        "max_tokens": 500 # Shorter for internal tasks
+        "max_tokens": LLM_INTERNAL_MAX_TOKENS
     }
 
     async with httpx.AsyncClient() as client:
