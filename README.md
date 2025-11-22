@@ -36,7 +36,7 @@ graph TD
 
 ## Interface Preview
 
-![Cipher UI](/Users/sri/.gemini/antigravity/brain/4a75b17a-b0ff-4029-b28a-26face9ca231/uploaded_image_1763834766707.png)
+![Cipher UI](assets/cipher_ui.png)
 
 ## Technology Stack
 
