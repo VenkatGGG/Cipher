@@ -8,7 +8,7 @@ export const useChatStream = (conversationId: string) => {
     const dispatch = useDispatch();
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    const sendMessage = useCallback(async (query: string) => {
+    const sendMessage = useCallback(async (query: string, onComplete?: () => void) => {
         setIsStreaming(true);
         setStreamingContent('');
         abortControllerRef.current = new AbortController();
@@ -53,6 +53,7 @@ export const useChatStream = (conversationId: string) => {
             setIsStreaming(false);
             setStreamingContent('');
             abortControllerRef.current = null;
+            if (onComplete) onComplete();
         }
     }, [conversationId, dispatch]);
 

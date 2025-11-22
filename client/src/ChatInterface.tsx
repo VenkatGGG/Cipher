@@ -58,10 +58,21 @@ const ChatInterface: React.FC = () => {
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (!input.trim() || isStreaming) return;
+
         const query = input;
         setInput('');
-        if (textareaRef.current) textareaRef.current.style.height = 'auto';
-        await sendMessage(query);
+
+        // Reset textarea height
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+        }
+
+        await sendMessage(query, () => {
+            // Refresh messages to get the updated user message with search results
+            if (activeId) {
+                dispatch(fetchMessages(activeId));
+            }
+        });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -72,23 +83,27 @@ const ChatInterface: React.FC = () => {
     };
 
     // Convert [1] style citations to clickable badges
-    const processCitations = (text: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const processCitations = (text: string, sources: any[]) => {
         const parts = text.split(/(\[\d+\])/g);
         return parts.map((part, idx) => {
             const match = part.match(/\[(\d+)\]/);
             if (match) {
+                const sourceId = match[1];
+                const source = sources.find(s => s.id === sourceId);
+                const url = source ? source.url : '#';
+
                 return (
-                    <button
+                    <a
                         key={idx}
-                        onClick={() => {
-                            const sourceCard = document.querySelector(`[data-source-id="${match[1]}"]`);
-                            sourceCard?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        }}
-                        className="inline-flex items-center px-1.5 py-0.5 mx-0.5 text-[10px] font-mono font-medium bg-zinc-800/80 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-zinc-400 hover:text-emerald-400 rounded-md transition-all hover:scale-105 cursor-pointer"
-                        title="Jump to source"
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-1.5 py-0.5 mx-0.5 text-[10px] font-mono font-medium bg-zinc-800/80 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-zinc-400 hover:text-emerald-400 rounded-md transition-all hover:scale-105 cursor-pointer no-underline"
+                        title={source ? source.title : "Source not found"}
                     >
-                        {match[1]}
-                    </button>
+                        {sourceId}
+                    </a>
                 );
             }
             return <span key={idx}>{part}</span>;
@@ -97,62 +112,28 @@ const ChatInterface: React.FC = () => {
 
     // Helper to parse search results
     const parseSources = (content: string) => {
-        const searchBlock = content.match(/Search Results \(for query: '.*?'\):\n([\s\S]*?)\n\nUser Query:/);
-        // Fallback for older messages or slightly different format
-        const searchBlockFallback = content.match(/Search Results:\n([\s\S]*?)\n\nUser Query:/);
+        // More robust regex that doesn't depend on the query quoting
+        const searchBlock = content.match(/Search Results.*?\n([\s\S]*?)\n\nUser Query:/);
 
-        const block = searchBlock ? searchBlock[1] : (searchBlockFallback ? searchBlockFallback[1] : null);
+        const block = searchBlock ? searchBlock[1] : null;
 
         if (!block) return [];
 
         const results = [];
-        const regex = /\[(\d+)\] (.*?): (.*?)(?=\n\[\d+\]|\n*$)/gs;
+        // Updated regex to capture URL: [1] Title (URL): Snippet...
+        // Matches: [1] Title (http://...) : Snippet
+        const regex = /\[(\d+)\]\s+(.*?)\s+\(([^)]+)\):\s+(.*?)(?=\n\[\d+\]|\n*$)/gs;
         let match;
 
         while ((match = regex.exec(block)) !== null) {
             results.push({
                 id: match[1],
-                title: match[2],
-                snippet: match[3].slice(0, 100) + '...'
+                title: match[2].trim(),
+                url: match[3].trim(),
+                snippet: match[4].trim().slice(0, 100) + '...'
             });
         }
         return results;
-    };
-
-    // Markdown Components
-    const markdownComponents = {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        p: ({ children }: any) => {
-            // Process text children for citations
-            const processedChildren = React.Children.map(children, child => {
-                if (typeof child === 'string') {
-                    return processCitations(child);
-                }
-                return child;
-            });
-            return <p className="mb-4 leading-relaxed text-zinc-300">{processedChildren}</p>;
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        a: ({ href, children }: any) => (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 hover:underline underline-offset-4 decoration-emerald-500/30 transition-all">
-                {children}
-            </a>
-        ),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        code: ({ inline, children, ...props }: any) => {
-            // Inline code
-            if (inline) {
-                return <code className="bg-zinc-800/80 border border-white/10 px-1.5 py-0.5 rounded-md text-sm font-mono text-emerald-400" {...props}>{children}</code>;
-            }
-            // Code blocks
-            return (
-                <code className="block bg-zinc-900 border border-white/5 p-4 rounded-xl text-sm font-mono text-zinc-200 overflow-x-auto" {...props}>
-                    {children}
-                </code>
-            );
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pre: ({ children }: any) => <pre className="my-4 overflow-x-auto rounded-xl">{children}</pre>,
     };
 
     // Auto-refresh conversation list when a new conversation is created (streaming finishes)
@@ -169,8 +150,43 @@ const ChatInterface: React.FC = () => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
+    // Factory for Markdown Components with source-aware citations
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const createMarkdownComponents = (sources: any[]) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        p: ({ children }: any) => {
+            const processedChildren = React.Children.map(children, child => {
+                if (typeof child === 'string') {
+                    return processCitations(child, sources);
+                }
+                return child;
+            });
+            return <p className="mb-4 leading-relaxed text-zinc-300">{processedChildren}</p>;
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        a: ({ href, children }: any) => (
+            <a href={href} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 hover:underline underline-offset-4 decoration-emerald-500/30 transition-all">
+                {children}
+            </a>
+        ),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        code: ({ inline, children, ...props }: any) => {
+            if (inline) {
+                return <code className="bg-zinc-800/80 border border-white/10 px-1.5 py-0.5 rounded-md text-sm font-mono text-emerald-400" {...props}>{children}</code>;
+            }
+            return (
+                <code className="block bg-zinc-900 border border-white/5 p-4 rounded-xl text-sm font-mono text-zinc-200 overflow-x-auto" {...props}>
+                    {children}
+                </code>
+            );
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pre: ({ children }: any) => <pre className="my-4 overflow-x-auto rounded-xl">{children}</pre>,
+    });
+
     return (
         <div className="flex h-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden selection:bg-emerald-500/20 antialiased">
+            {/* ... Sidebar ... */}
             {/* Glass Rail Sidebar (Fixed) */}
             <div className="w-14 md:w-16 lg:w-20 glass flex flex-col items-center py-4 md:py-6 gap-6 md:gap-8 z-30 flex-shrink-0 relative">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 border border-emerald-400/20 flex items-center justify-center text-zinc-950 shadow-lg shadow-emerald-500/20 mb-2 md:mb-4 hover:scale-105 transition-all cursor-pointer">
@@ -295,9 +311,21 @@ const ChatInterface: React.FC = () => {
 
                                 return (
                                     <div key={idx} className="space-y-6 animate-fade-in-up group">
+                                        {/* Answer */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                                                <Sparkles size={14} className="text-emerald-500/50" /> Answer
+                                            </div>
+                                            <div className="prose prose-invert prose-p:text-[15px] prose-p:leading-relaxed prose-headings:tracking-tight prose-headings:font-bold prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-white/5 prose-pre:rounded-xl prose-code:text-emerald-400 prose-code:bg-zinc-800/80 prose-code:border prose-code:border-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md max-w-none">
+                                                <ReactMarkdown components={createMarkdownComponents(sources)}>
+                                                    {msg.content}
+                                                </ReactMarkdown>
+                                            </div>
+                                        </div>
+
                                         {/* Sources Row */}
                                         {sources.length > 0 && (
-                                            <div className="space-y-3">
+                                            <div className="space-y-3 pt-2">
                                                 <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                                                     <Layers size={14} className="text-emerald-500/50" /> Sources
                                                 </div>
@@ -305,8 +333,9 @@ const ChatInterface: React.FC = () => {
                                                     {sources.map((source, i) => (
                                                         <a
                                                             key={i}
-                                                            href="#"
-                                                            data-source-id={source.id}
+                                                            href={source.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
                                                             className="flex-shrink-0 w-48 p-3 bg-zinc-900/50 hover:bg-zinc-800 border border-white/5 rounded-xl cursor-pointer transition-all hover:border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/5 group/card flex flex-col justify-between h-24"
                                                         >
                                                             <div className="text-xs text-zinc-300 line-clamp-2 group-hover/card:text-emerald-400 transition-colors leading-relaxed font-medium">{source.title}</div>
@@ -321,18 +350,6 @@ const ChatInterface: React.FC = () => {
                                                 </div>
                                             </div>
                                         )}
-
-                                        {/* Answer */}
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                                                <Sparkles size={14} className="text-emerald-500/50" /> Answer
-                                            </div>
-                                            <div className="prose prose-invert prose-p:text-[15px] prose-p:leading-relaxed prose-headings:tracking-tight prose-headings:font-bold prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-white/5 prose-pre:rounded-xl prose-code:text-emerald-400 prose-code:bg-zinc-800/80 prose-code:border prose-code:border-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md max-w-none">
-                                                <ReactMarkdown components={markdownComponents}>
-                                                    {msg.content}
-                                                </ReactMarkdown>
-                                            </div>
-                                        </div>
 
                                         <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent w-full mt-8" />
                                     </div>
@@ -352,7 +369,9 @@ const ChatInterface: React.FC = () => {
                                         Generating...
                                     </div>
                                     <div className="prose prose-invert prose-p:text-[15px] prose-p:leading-relaxed prose-headings:tracking-tight prose-headings:font-bold prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-white/5 prose-pre:rounded-xl prose-code:text-emerald-400 prose-code:bg-zinc-800/80 prose-code:border prose-code:border-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md max-w-none">
-                                        <ReactMarkdown components={markdownComponents}>
+                                        <ReactMarkdown components={createMarkdownComponents(
+                                            messages.length > 0 ? parseSources(messages[messages.length - 1].content) : []
+                                        )}>
                                             {streamingContent}
                                         </ReactMarkdown>
                                         <span className="inline-block w-1.5 h-4 bg-emerald-500 ml-1 animate-pulse align-middle rounded-full" />
