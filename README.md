@@ -17,21 +17,60 @@ Cipher is an advanced AI Research Assistant designed to provide accurate, contex
 
 ```mermaid
 graph TD
-    User[User] -->|Query| Frontend[React Frontend]
-    Frontend -->|POST /chat| Backend[FastAPI Backend]
+    %% Styles
+    classDef frontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef backend fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
+    classDef database fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#e65100
+    classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c
+    classDef user fill:#eceff1,stroke:#455a64,stroke-width:2px,color:#263238
+
+    User((User)):::user
     
-    subgraph "Backend Services"
-        Backend -->|1. Search| SearchAPI[Parallel Systems API]
-        Backend -->|2. Retrieve Context| VectorDB[(MongoDB Vector Store)]
-        Backend -->|3. Generate| LLM[OpenRouter LLM]
-        
-        SearchAPI -->|Results| Backend
-        VectorDB -->|History| Backend
-        LLM -->|Stream| Backend
+    subgraph "Frontend Layer"
+        UI[React UI]:::frontend
+        State[Redux Store]:::frontend
+        StreamHandler[Stream Handler]:::frontend
     end
+
+    subgraph "Backend Layer"
+        API[FastAPI Server]:::backend
+        Orchestrator[Chat Orchestrator]:::backend
+        Embedder[FastEmbed Model]:::backend
+        Summarizer[Background Summarizer]:::backend
+    end
+
+    subgraph "Data Layer"
+        MongoDocs[(MongoDB Documents)]:::database
+        MongoVector[(Atlas Vector Search)]:::database
+    end
+
+    subgraph "External Services"
+        Parallel[Parallel Systems API]:::external
+        OpenRouter[OpenRouter LLM]:::external
+    end
+
+    %% Flows
+    User <-->|Interaction| UI
+    UI <-->|Dispatch/Select| State
+    UI <-->|SSE Stream| StreamHandler
     
-    Backend -->|Stream Response| Frontend
-    Backend -->|Save| Database[(MongoDB Atlas)]
+    StreamHandler <-->|POST /chat| API
+    API <-->|Process| Orchestrator
+    
+    Orchestrator -->|1. Search Query| Parallel
+    Parallel -->|2. Search Results| Orchestrator
+    
+    Orchestrator -->|3. Embed Query| Embedder
+    Embedder -->|Vectors| Orchestrator
+    
+    Orchestrator <-->|4. Retrieve Context| MongoVector
+    Orchestrator -->|5. Generate Response| OpenRouter
+    
+    OpenRouter -->|6. Stream Tokens| Orchestrator
+    Orchestrator -->|7. Persist Chat| MongoDocs
+    
+    Summarizer -.->|Async Summary| OpenRouter
+    Summarizer -.->|Update Metadata| MongoDocs
 ```
 
 ## Interface Preview
