@@ -19,7 +19,7 @@ export const processCitations = (text: string, sources: Source[]) => {
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center px-1.5 py-0.5 mx-0.5 text-[10px] font-mono font-medium bg-zinc-800/80 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-zinc-400 hover:text-emerald-400 rounded-md transition-all hover:scale-105 cursor-pointer no-underline"
+                    className="badge-citation"
                     title={source ? source.title : "Source not found"}
                 >
                     {sourceId}

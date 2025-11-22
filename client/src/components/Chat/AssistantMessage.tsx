@@ -10,10 +10,10 @@ interface AssistantMessageProps {
 
 export const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, sources }) => {
     return (
-        <div className="space-y-6 animate-fade-in-up group">
+        <div className="layout-message-container animate-fade-in-up">
             <MarkdownRenderer content={content} sources={sources} />
             <SourcesRow sources={sources} />
-            <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent w-full mt-8" />
+            <div className="divider-horizontal" />
         </div>
     );
 };
