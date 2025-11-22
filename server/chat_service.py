@@ -1,10 +1,19 @@
-import time
-import asyncio
-from typing import List, Dict
-from database import conversations_collection
+from prompts import get_system_prompt, get_contextualization_prompt
+
+# ... (existing imports)
+
+# ... (inside contextualize_query)
+    messages = [
+        {"role": "system", "content": get_contextualization_prompt()},
+    ]
+
+# ... (inside chat_pipeline)
+        # 4. Construct Messages for Final Generation
+        messages = [{"role": "system", "content": get_system_prompt()}]
 from search_client import search_parallel
 from llm_client import stream_chat_response, generate_chat_response
 from fastembed import TextEmbedding
+from prompts import get_system_prompt, get_contextualization_prompt
 
 # Initialize embedding model (lightweight)
 embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
@@ -88,15 +97,7 @@ async def contextualize_query(query: str, history: List[Dict]) -> str:
     recent_history = history[-3:]
     
     messages = [
-        {"role": "system", "content": """You are a query rewriting assistant. 
-        Your task is to rewrite the user's latest query to be a standalone search query, resolving any coreferences (like "it", "they", "that company") using the provided chat history.
-        If the query is already standalone, return it exactly as is.
-        Do NOT answer the question. JUST return the rewritten query.
-        Example:
-        History: User: "Who is CEO of Google?" Assistant: "Sundar Pichai."
-        User: "How old is he?"
-        Rewritten: "How old is Sundar Pichai"
-        """},
+        {"role": "system", "content": get_contextualization_prompt()},
     ]
     
     for msg in recent_history:
@@ -134,12 +135,7 @@ async def chat_pipeline(query: str, conversation_id: str):
         search_context = "\n".join([f"[{i+1}] {res.get('title', 'Untitled')} ({res.get('url', '#')}): {res.get('body', '')[:300]}..." for i, res in enumerate(search_results)])
         
         # 4. Construct Messages for Final Generation
-        system_prompt = """You are Cipher, a real-time AI search engine with a Matrix/Cyberpunk aesthetic. 
-        Answer the user's query using the provided search results. 
-        Use citations like [1] to refer to search results.
-        Be concise, technical, and direct."""
-        
-        messages = [{"role": "system", "content": system_prompt}]
+        messages = [{"role": "system", "content": get_system_prompt()}]
         
         # Add history
         for msg in history:
